@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/ckinan/sysmon/internal/collector"
+	"github.com/ckinan/sysmon/internal/ui"
 )
 
 func main() {
@@ -17,11 +19,8 @@ func main() {
 	snapshotCh := collector.Start(ctx, 2*time.Second)
 
 	// Read a few snapshots then exit (for now)
-	for range 3 {
-		snap, ok := <-snapshotCh
-		if !ok {
-			break // channel was closed - collector stopped
-		}
-		fmt.Printf("RAM used: %d kB, processes: %d\n", snap.Ram.MemUsed, len(snap.Processes))
+	p := tea.NewProgram(ui.New(snapshotCh), tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		slog.Error("error running TUI", "err", err)
 	}
 }
