@@ -16,15 +16,44 @@ const (
 	colCommandWidth = 40
 )
 
+type SortField int
+
+const (
+	SortByRSS SortField = iota // default: highest RSS first
+	SortByCPU
+	SortByPID
+	SortByPPID
+	SortByCmdLine
+)
+
+func (s SortField) String() string {
+	switch s {
+	case SortByRSS:
+		return "RSS"
+	case SortByCPU:
+		return "CPU"
+	case SortByPID:
+		return "PID"
+	case SortByPPID:
+		return "PPID"
+	case SortByCmdLine:
+		return "CmdLine"
+	default:
+		return "?"
+	}
+}
+
 // Model is the bubbletea model. It holds all UI state
 type Model struct {
-	snapCh <-chan collector.Snapshot // read-only channel from the collect
-	CPU    float64
-	ram    internal.Ram
-	procs  []internal.Process
-	height int // terminal height
-	width  int
-	table  table.Model
+	snapCh   <-chan collector.Snapshot // read-only channel from the collect
+	CPU      float64
+	ram      internal.Ram
+	procs    []internal.Process
+	height   int // terminal height
+	width    int
+	table    table.Model
+	sortBy   SortField
+	sortDesc bool
 }
 
 func New(ch <-chan collector.Snapshot) Model {
@@ -36,13 +65,19 @@ func New(ch <-chan collector.Snapshot) Model {
 		{Title: "User", Width: colUserWidth},
 		{Title: "CPU%", Width: colCPUWidth},
 		{Title: "RSS", Width: colRSSWidth},
-		{Title: "Command", Width: colCommandWidth},
+		{Title: "CmdLine", Width: colCommandWidth},
 	}
 	t := table.New(
 		table.WithColumns(cols),
 		table.WithFocused(true), // focused = keyboard nav (↑/↓) is active
 	)
-	return Model{snapCh: ch, height: 24, table: t}
+	return Model{
+		snapCh:   ch,
+		height:   24,
+		table:    t,
+		sortBy:   SortByRSS,
+		sortDesc: true,
+	}
 }
 
 func (m Model) Init() tea.Cmd {

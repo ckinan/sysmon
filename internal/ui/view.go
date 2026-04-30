@@ -14,6 +14,6 @@ func (m Model) View() string {
 		internal.HumanBytes(m.ram.MemTotal),
 		float64(m.ram.MemUsed)*100.0/float64(m.ram.MemTotal),
 	)
-	footer := "[q] quit"
+	footer := "sort: [C]cpu [M]rss [P]pid [L]cmdline | [q]quit"
 	return header + "\n" + m.table.View() + "\n\n" + footer
 }
