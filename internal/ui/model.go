@@ -4,7 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/ckinan/sysmon/internal/domain"
+	"github.com/ckinan/cktop/internal/domain"
 )
 
 const (

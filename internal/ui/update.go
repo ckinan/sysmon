@@ -5,8 +5,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/ckinan/sysmon/internal/domain"
-	"github.com/ckinan/sysmon/internal/util"
+	"github.com/ckinan/cktop/internal/domain"
+	"github.com/ckinan/cktop/internal/util"
 )
 
 type snapshotMsg domain.Snapshot

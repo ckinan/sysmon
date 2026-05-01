@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ckinan/sysmon/internal/domain"
+	"github.com/ckinan/cktop/internal/domain"
 	"github.com/shirou/gopsutil/v4/process"
 )
 

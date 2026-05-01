@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ckinan/sysmon/internal/domain"
+	"github.com/ckinan/cktop/internal/domain"
 )
 
 type MockMemoryReader struct {

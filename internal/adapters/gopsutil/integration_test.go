@@ -5,7 +5,7 @@ package gopsutil_test
 import (
 	"testing"
 
-	"github.com/ckinan/sysmon/internal/adapters/gopsutil"
+	"github.com/ckinan/cktop/internal/adapters/gopsutil"
 )
 
 func TestGopsutilMemoryReader_RealSystem(t *testing.T) {

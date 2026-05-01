@@ -6,10 +6,10 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/ckinan/sysmon/internal/adapters/gopsutil"
-	"github.com/ckinan/sysmon/internal/domain"
-	"github.com/ckinan/sysmon/internal/infra"
-	"github.com/ckinan/sysmon/internal/ui"
+	"github.com/ckinan/cktop/internal/adapters/gopsutil"
+	"github.com/ckinan/cktop/internal/domain"
+	"github.com/ckinan/cktop/internal/infra"
+	"github.com/ckinan/cktop/internal/ui"
 )
 
 func main() {

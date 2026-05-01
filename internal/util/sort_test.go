@@ -3,7 +3,7 @@ package util_test
 import (
 	"testing"
 
-	"github.com/ckinan/sysmon/internal/util"
+	"github.com/ckinan/cktop/internal/util"
 )
 
 func TestSortBy(t *testing.T) {

@@ -1,4 +1,4 @@
-# sysmon
+# cktop
 
 System Monitor written in Go.
 
@@ -10,12 +10,12 @@ System Monitor written in Go.
 ## Installation
 
 ```sh
-go install github.com/ckinan/sysmon@latest
+go install github.com/ckinan/cktop@latest
 ```
 
 ## Upgrade
 
 ```sh
-GOPROXY=direct go install github.com/ckinan/sysmon@latest
+GOPROXY=direct go install github.com/ckinan/cktop@latest
 ```
 

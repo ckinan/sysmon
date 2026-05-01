@@ -3,7 +3,7 @@ package ui
 import (
 	"fmt"
 
-	"github.com/ckinan/sysmon/internal/util"
+	"github.com/ckinan/cktop/internal/util"
 )
 
 func (m Model) View() string {

@@ -1,4 +1,4 @@
-module github.com/ckinan/sysmon
+module github.com/ckinan/cktop
 
 go 1.25.0
 

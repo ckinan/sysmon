@@ -3,7 +3,7 @@ package gopsutil
 import (
 	"fmt"
 
-	"github.com/ckinan/sysmon/internal/domain"
+	"github.com/ckinan/cktop/internal/domain"
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
