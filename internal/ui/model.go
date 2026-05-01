@@ -4,8 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/ckinan/sysmon/internal"
-	"github.com/ckinan/sysmon/internal/collector"
+	"github.com/ckinan/sysmon/internal/domain"
 )
 
 const (
@@ -46,10 +45,10 @@ func (s SortField) String() string {
 
 // Model is the bubbletea model. It holds all UI state
 type Model struct {
-	snapCh   <-chan collector.Snapshot // read-only channel from the collect
+	snapCh   <-chan domain.Snapshot // read-only channel from the collect
 	CPU      float64
-	ram      internal.Ram
-	procs    []internal.Process
+	memory   domain.Memory
+	procs    []domain.Process
 	height   int // terminal height
 	width    int
 	table    table.Model
@@ -57,7 +56,7 @@ type Model struct {
 	sortDesc bool
 }
 
-func New(ch <-chan collector.Snapshot) Model {
+func New(ch <-chan domain.Snapshot) Model {
 	// height: 24 is a safe fallback
 	// frame is painted right after startup, so this default is almost never actually visible
 	cols := []table.Column{

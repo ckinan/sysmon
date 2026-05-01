@@ -3,16 +3,16 @@ package ui
 import (
 	"fmt"
 
-	"github.com/ckinan/sysmon/internal"
+	"github.com/ckinan/sysmon/internal/util"
 )
 
 func (m Model) View() string {
 	header := fmt.Sprintf(
 		"CPU: %.2f%%\nMem: %s / %s (%.2f%%)\n",
 		m.CPU,
-		internal.HumanBytes(m.ram.MemUsed),
-		internal.HumanBytes(m.ram.MemTotal),
-		float64(m.ram.MemUsed)*100.0/float64(m.ram.MemTotal),
+		util.HumanBytes(m.memory.Used),
+		util.HumanBytes(m.memory.Total),
+		float64(m.memory.Used)*100.0/float64(m.memory.Total),
 	)
 	footer := "sort: [C]cpu [M]rss [P]pid [L]cmdline | [q]quit"
 	return header + "\n" + m.table.View() + "\n\n" + footer

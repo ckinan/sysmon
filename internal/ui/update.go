@@ -5,13 +5,13 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/ckinan/sysmon/internal"
-	"github.com/ckinan/sysmon/internal/collector"
+	"github.com/ckinan/sysmon/internal/domain"
+	"github.com/ckinan/sysmon/internal/util"
 )
 
-type snapshotMsg collector.Snapshot
+type snapshotMsg domain.Snapshot
 
-func waitForSnapshot(ch <-chan collector.Snapshot) tea.Cmd {
+func waitForSnapshot(ch <-chan domain.Snapshot) tea.Cmd {
 	return func() tea.Msg {
 		snap, ok := <-ch
 		if !ok {
@@ -45,18 +45,18 @@ func (m *Model) applySort() {
 		{Title: "CmdLine" + calcDir(m.sortBy == SortByCmdLine, m.sortDesc), Width: cmdW},
 	})
 
-	var sorted []internal.Process
+	var sorted []domain.Process
 	switch m.sortBy {
 	case SortByRSS:
-		sorted = internal.SortBy(m.procs, func(p internal.Process) int { return p.Rss }, m.sortDesc)
+		sorted = util.SortBy(m.procs, func(p domain.Process) int { return p.Rss }, m.sortDesc)
 	case SortByCPU:
-		sorted = internal.SortBy(m.procs, func(p internal.Process) float64 { return p.CPU }, m.sortDesc)
+		sorted = util.SortBy(m.procs, func(p domain.Process) float64 { return p.CPU }, m.sortDesc)
 	case SortByPID:
-		sorted = internal.SortBy(m.procs, func(p internal.Process) int { return p.Pid }, m.sortDesc)
+		sorted = util.SortBy(m.procs, func(p domain.Process) int { return p.Pid }, m.sortDesc)
 	case SortByPPID:
-		sorted = internal.SortBy(m.procs, func(p internal.Process) int { return p.Ppid }, m.sortDesc)
+		sorted = util.SortBy(m.procs, func(p domain.Process) int { return p.Ppid }, m.sortDesc)
 	case SortByCmdLine:
-		sorted = internal.SortBy(m.procs, func(p internal.Process) string { return p.Cmdline }, m.sortDesc)
+		sorted = util.SortBy(m.procs, func(p domain.Process) string { return p.Cmdline }, m.sortDesc)
 	}
 
 	rows := make([]table.Row, len(sorted))
@@ -66,7 +66,7 @@ func (m *Model) applySort() {
 			fmt.Sprintf("%d", p.Ppid),
 			p.Username,
 			fmt.Sprintf("%.2f%%", p.CPU),
-			internal.HumanBytes(p.Rss),
+			util.HumanBytes(p.Rss),
 			p.Cmdline,
 		}
 	}
@@ -76,9 +76,9 @@ func (m *Model) applySort() {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case snapshotMsg:
-		snap := collector.Snapshot(msg)
+		snap := domain.Snapshot(msg)
 		m.CPU = msg.CPU
-		m.ram = msg.Ram
+		m.memory = msg.Memory
 		wasEmpty := len(m.procs) == 0 // first data arrival?
 		m.procs = snap.Processes
 		m.applySort()
