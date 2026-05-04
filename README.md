@@ -6,7 +6,7 @@ System Monitor written in Go.
 
 This CLI tool is supposed to work on any OS supported by `gopsutil` e.g. Linux, MacOS, Windows. For supported platforms, read: https://github.com/shirou/gopsutil#current-status
 
-## ROADMAP
+## Roadmap
 
 1. Show live CPU and RAM used by the system.
 2. Sort by process name, memory, cpu
