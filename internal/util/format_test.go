@@ -9,7 +9,7 @@ import (
 func TestHumanBytes(t *testing.T) {
 	tests := []struct {
 		name  string
-		input int
+		input int64
 		want  string
 	}{
 		{"bytes", 15, "15 B"},

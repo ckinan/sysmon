@@ -15,8 +15,8 @@ func (g GopsutilMemoryReader) ReadMemory() (domain.Memory, error) {
 		return domain.Memory{}, fmt.Errorf("gopsutil VirtualMemory: %w", err)
 	}
 	return domain.Memory{
-		Total:     int(v.Total),
-		Available: int(v.Available),
-		Used:      int(v.Used),
+		Total:     int64(v.Total),
+		Available: int64(v.Available),
+		Used:      int64(v.Used),
 	}, nil
 }

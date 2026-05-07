@@ -1,9 +1,9 @@
 package domain
 
 type Memory struct {
-	Total     int
-	Available int
-	Used      int
+	Total     int64
+	Available int64
+	Used      int64
 }
 
 type Process struct {

@@ -2,7 +2,7 @@ package util
 
 import "fmt"
 
-func HumanBytes(b int) string {
+func HumanBytes(b int64) string {
 	switch {
 	case b >= 1<<30: // >= 1GiB
 		return fmt.Sprintf("%.2f GiB", float64(b)/float64(1<<30))

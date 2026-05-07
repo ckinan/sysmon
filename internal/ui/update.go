@@ -42,7 +42,7 @@ func filterProcs(procs []domain.Process, query string) []domain.Process {
 	q := strings.ToLower(query)
 	var out []domain.Process
 	for _, p := range procs {
-		if strings.Contains(strings.ToLower(fmt.Sprintf("%d %d %s %s %s", p.Pid, p.Ppid, p.Username, p.Cmdline, util.HumanBytes(p.Rss))), q) {
+		if strings.Contains(strings.ToLower(fmt.Sprintf("%d %d %s %s %s", p.Pid, p.Ppid, p.Username, p.Cmdline, util.HumanBytes(int64(p.Rss)))), q) {
 			out = append(out, p)
 		}
 	}
@@ -85,7 +85,7 @@ func (m *Model) applySort() {
 			fmt.Sprintf("%d", p.Ppid),
 			p.Username,
 			fmt.Sprintf("%.2f%%", p.CPU),
-			util.HumanBytes(p.Rss),
+			util.HumanBytes(int64(p.Rss)),
 			p.Cmdline,
 		}
 	}
@@ -123,7 +123,7 @@ func appendTreeRows(pid int, pByPid map[int]domain.Process, childrenByPid map[in
 	for _, childPid := range childrenByPid[pid] {
 		p := pByPid[childPid]
 		indent := strings.Repeat("  ", depth)
-		rows = append(rows, table.Row{fmt.Sprintf("%s|- [pid:%d | cpu:%.2f%% | rss:%s] %s", indent, p.Pid, p.CPU, util.HumanBytes(p.Rss), p.Cmdline)})
+		rows = append(rows, table.Row{fmt.Sprintf("%s|- [pid:%d | cpu:%.2f%% | rss:%s] %s", indent, p.Pid, p.CPU, util.HumanBytes(int64(p.Rss)), p.Cmdline)})
 		pids = append(pids, p.Pid)
 		rows, pids = appendTreeRows(childPid, pByPid, childrenByPid, depth+1, rows, pids)
 	}
@@ -145,14 +145,14 @@ func buildTreeRows(procs []domain.Process, selected domain.Process) ([]table.Row
 	for depth, i := 0, len(parents)-1; i >= 0; i, depth = i-1, depth+1 {
 		p := parents[i]
 		indent := strings.Repeat("  ", depth)
-		rows = append(rows, table.Row{fmt.Sprintf("%s|- [pid:%d | cpu:%.2f%% | rss:%s] %s", indent, p.Pid, p.CPU, util.HumanBytes(p.Rss), p.Cmdline)})
+		rows = append(rows, table.Row{fmt.Sprintf("%s|- [pid:%d | cpu:%.2f%% | rss:%s] %s", indent, p.Pid, p.CPU, util.HumanBytes(int64(p.Rss)), p.Cmdline)})
 		pids = append(pids, p.Pid)
 	}
 
 	// selected process
 	depth := len(parents)
 	indent := strings.Repeat("  ", depth)
-	rows = append(rows, table.Row{fmt.Sprintf("%s|- [pid:%d | cpu:%.2f%% | rss:%s] %s", indent, selected.Pid, selected.CPU, util.HumanBytes(selected.Rss), selected.Cmdline)})
+	rows = append(rows, table.Row{fmt.Sprintf("%s|- [pid:%d | cpu:%.2f%% | rss:%s] %s", indent, selected.Pid, selected.CPU, util.HumanBytes(int64(selected.Rss)), selected.Cmdline)})
 	pids = append(pids, selected.Pid)
 
 	// children subtree
