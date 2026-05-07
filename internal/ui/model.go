@@ -60,6 +60,10 @@ type Model struct {
 	// filter state (shared between both views)
 	filter       textinput.Model
 	filterActive bool
+	// kill state
+	killPending bool
+	killPID     int
+	killMsg     string
 	// fields for details view
 	showDetail  bool
 	frozenProc  domain.Process

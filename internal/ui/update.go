@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -175,6 +176,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, waitForSnapshot(m.snapCh)
 	case tea.KeyMsg:
+		m.killMsg = ""
+		if m.killPending {
+			switch msg.String() {
+			case "t":
+				if err := syscall.Kill(m.killPID, syscall.SIGTERM); err != nil {
+					m.killMsg = fmt.Sprintf("SIGTERM failed: %s", err)
+				} else {
+					m.killMsg = fmt.Sprintf("sent SIGTERM to PID %d", m.killPID)
+				}
+				m.killPending = false
+			case "k":
+				if err := syscall.Kill(m.killPID, syscall.SIGKILL); err != nil {
+					m.killMsg = fmt.Sprintf("SIGKILL failed: %s", err)
+				} else {
+					m.killMsg = fmt.Sprintf("sent SIGKILL to PID %d", m.killPID)
+				}
+				m.killPending = false
+			case "esc":
+				m.killPending = false
+			}
+			return m, nil
+		}
 		if m.filterActive {
 			switch msg.String() {
 			case "enter":
@@ -219,6 +242,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.openDetailView()
 				}
 				return m, nil
+			case "f9":
+				cursor := m.tableDetail.Cursor()
+				if cursor >= 0 && cursor < len(m.treeRowPIDs) {
+					m.killPID = m.treeRowPIDs[cursor]
+					m.killPending = true
+				}
+				return m, nil
 			case "q":
 				m.showDetail = false
 				m.filter.SetValue("")
@@ -251,6 +281,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.filter.Value() != "" {
 				m.filter.SetValue("")
 				m.applySort()
+			}
+			return m, nil
+		case "f9":
+			row := m.table.SelectedRow()
+			if len(row) > 0 {
+				pid, _ := strconv.Atoi(row[0])
+				m.killPID = pid
+				m.killPending = true
 			}
 			return m, nil
 		}
