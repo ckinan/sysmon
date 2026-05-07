@@ -2,7 +2,6 @@ package ui
 
 import (
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ckinan/cktop/internal/domain"
@@ -46,16 +45,17 @@ func (s SortField) String() string {
 
 // Model is the bubbletea model. It holds all UI state
 type Model struct {
-	snapCh   <-chan domain.Snapshot // read-only channel from the collect
-	CPU      float64
-	memory   domain.Memory
-	procs    []domain.Process
-	height   int // terminal height
-	width    int
-	table    table.Model
-	sortBy   SortField
-	sortDesc bool
-	viewport viewport.Model
+	snapCh      <-chan domain.Snapshot // read-only channel from the collect
+	CPU         float64
+	memory      domain.Memory
+	procs       []domain.Process
+	height      int // terminal height
+	width       int
+	table       table.Model
+	sortBy      SortField
+	sortDesc    bool
+	tableDetail table.Model
+	treeRowPIDs []int // maps tableDetail row index → PID
 	// fields for details view
 	showDetail  bool
 	frozenProc  domain.Process
@@ -80,12 +80,20 @@ func New(ch <-chan domain.Snapshot) Model {
 		table.WithFocused(true), // focused = keyboard nav (↑/↓) is active
 		table.WithStyles(s),
 	)
+
+	// table for detail view
+	td := table.New(
+		table.WithColumns([]table.Column{{Title: "", Width: 120}}),
+		table.WithFocused(true),
+		table.WithStyles(s),
+	)
 	return Model{
-		snapCh:   ch,
-		height:   24,
-		table:    t,
-		sortBy:   SortByRSS,
-		sortDesc: true,
+		snapCh:      ch,
+		height:      24,
+		table:       t,
+		sortBy:      SortByRSS,
+		sortDesc:    true,
+		tableDetail: td,
 	}
 }
 

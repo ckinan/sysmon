@@ -7,7 +7,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/ckinan/cktop/internal/domain"
 	"github.com/ckinan/cktop/internal/util"
 )
@@ -103,72 +102,46 @@ func buildChildren(procs []domain.Process) map[int][]int {
 	return childrenByPid
 }
 
-func renderSubtree(selectedPid int, pByPid map[int]domain.Process, childrenByPid map[int][]int, depth int, treeview string) string {
-	depth++
-	for _, childrenPid := range childrenByPid[selectedPid] {
+func appendTreeRows(pid int, pByPid map[int]domain.Process, childrenByPid map[int][]int, depth int, rows []table.Row, pids []int) ([]table.Row, []int) {
+	for _, childPid := range childrenByPid[pid] {
+		p := pByPid[childPid]
 		indent := strings.Repeat("  ", depth)
-		treeview = fmt.Sprintf(
-			"%s%s|- [pid:%d | cpu:%.2f%% | rss: %s] %s\n",
-			treeview,
-			indent,
-			pByPid[childrenPid].Pid,
-			pByPid[childrenPid].CPU,
-			util.HumanBytes(pByPid[childrenPid].Rss),
-			pByPid[childrenPid].Cmdline,
-		)
-		treeview = renderSubtree(pByPid[childrenPid].Pid, pByPid, childrenByPid, depth, treeview)
+		rows = append(rows, table.Row{fmt.Sprintf("%s|- [pid:%d | cpu:%.2f%% | rss:%s] %s", indent, p.Pid, p.CPU, util.HumanBytes(p.Rss), p.Cmdline)})
+		pids = append(pids, p.Pid)
+		rows, pids = appendTreeRows(childPid, pByPid, childrenByPid, depth+1, rows, pids)
 	}
-	return treeview
+	return rows, pids
 }
 
-func (m *Model) treeview() string {
-	var treeview string
-	var parents []domain.Process
-
-	parents = buildParents(m.frozenProcs, m.frozenProc)
-
-	depth := 0
-	for i := len(parents) - 1; i >= 0; i-- {
-		indent := strings.Repeat("  ", depth)
-		treeview = fmt.Sprintf(
-			"%s%s|- [%d] %s\n",
-			treeview,
-			indent,
-			parents[i].Pid,
-			parents[i].Cmdline,
-		)
-		depth++
-	}
-
-	indent := strings.Repeat("  ", depth)
-	treeview = fmt.Sprintf(
-		"%s%s%s\n",
-		treeview,
-		indent,
-		lipgloss.NewStyle().Reverse(true).Render(fmt.Sprintf("|-[%d] %s", m.frozenProc.Pid, m.frozenProc.Cmdline)),
-	)
-
-	pByPid := make(map[int]domain.Process, len(m.frozenProcs))
-	for _, p := range m.frozenProcs {
+func buildTreeRows(procs []domain.Process, selected domain.Process) ([]table.Row, []int) {
+	pByPid := make(map[int]domain.Process, len(procs))
+	for _, p := range procs {
 		pByPid[p.Pid] = p
 	}
+	childrenByPid := buildChildren(procs)
+	parents := buildParents(procs, selected)
 
-	childrenByPid := buildChildren(m.frozenProcs)
-	treeview = renderSubtree(m.frozenProc.Pid, pByPid, childrenByPid, depth, treeview)
-	return treeview
-}
+	var rows []table.Row
+	var pids []int
 
-func (m *Model) details() string {
-	return fmt.Sprintf(
-		"PID: %d\nPPID: %d\nUser: %s\nCPU%%: %.2f%%\nRSS: %s\nCmdLine: %s\n\n%s",
-		m.frozenProc.Pid,
-		m.frozenProc.Ppid,
-		m.frozenProc.Username,
-		m.frozenProc.CPU,
-		util.HumanBytes(m.frozenProc.Rss),
-		m.frozenProc.Cmdline,
-		m.treeview(),
-	)
+	// ancestors: root → immediate parent
+	for depth, i := 0, len(parents)-1; i >= 0; i, depth = i-1, depth+1 {
+		p := parents[i]
+		indent := strings.Repeat("  ", depth)
+		rows = append(rows, table.Row{fmt.Sprintf("%s|- [pid:%d | cpu:%.2f%% | rss:%s] %s", indent, p.Pid, p.CPU, util.HumanBytes(p.Rss), p.Cmdline)})
+		pids = append(pids, p.Pid)
+	}
+
+	// selected process
+	depth := len(parents)
+	indent := strings.Repeat("  ", depth)
+	rows = append(rows, table.Row{fmt.Sprintf("%s|- [pid:%d | cpu:%.2f%% | rss:%s] %s", indent, selected.Pid, selected.CPU, util.HumanBytes(selected.Rss), selected.Cmdline)})
+	pids = append(pids, selected.Pid)
+
+	// children subtree
+	rows, pids = appendTreeRows(selected.Pid, pByPid, childrenByPid, depth+1, rows, pids)
+
+	return rows, pids
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -187,19 +160,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, waitForSnapshot(m.snapCh)
 	case tea.KeyMsg:
 		if m.showDetail {
-			if msg.String() == "q" {
+			switch msg.String() {
+			case "q":
 				m.showDetail = false
 				return m, nil
+			case "enter":
+				cursor := m.tableDetail.Cursor()
+				if cursor >= 0 && cursor < len(m.treeRowPIDs) {
+					pid := m.treeRowPIDs[cursor]
+					for _, p := range m.frozenProcs {
+						if p.Pid == pid {
+							m.frozenProc = p
+							break
+						}
+					}
+					m.openDetailView()
+				}
+				return m, nil
 			}
-			// pass keys to viewport for scrolling
-			m.viewport, cmd = m.viewport.Update(msg)
+			m.tableDetail, cmd = m.tableDetail.Update(msg)
 			return m, cmd
 		}
 		prev := m.sortBy
 		isSortKey := true
 		switch msg.String() {
 		case "enter":
-			m.showDetail = true
 			isSortKey = false
 			frozenProcs := make([]domain.Process, len(m.procs))
 			copy(frozenProcs, m.procs)
@@ -213,7 +198,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					break
 				}
 			}
-			m.viewport.SetContent(m.details())
+			m.openDetailView()
+			m.showDetail = true
 		case "M":
 			m.sortBy = SortByRSS
 		case "C":
@@ -242,12 +228,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.width = msg.Width
 		m.table.SetHeight(m.height - 5)
-		m.viewport.Width = m.width
-		m.viewport.Height = m.height - 3
+		m.tableDetail.SetHeight(m.height - 4)
 		m.applySort()
 
 		return m, nil
 	}
 	m.table, cmd = m.table.Update(msg)
 	return m, cmd
+}
+
+func (m *Model) openDetailView() {
+	rows, pids := buildTreeRows(m.frozenProcs, m.frozenProc)
+	m.tableDetail.SetRows(rows)
+	m.treeRowPIDs = pids
+	for i, pid := range pids {
+		if pid == m.frozenProc.Pid {
+			m.tableDetail.SetCursor(i)
+			break
+		}
+	}
 }

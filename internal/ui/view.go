@@ -9,11 +9,16 @@ import (
 func (m Model) View() string {
 	if m.showDetail {
 		header := fmt.Sprintf(
-			"Snapshot for PID: %d",
+			"PID: %d | PPID: %d | User: %s | CPU: %.2f%% | RSS: %s\nCmdLine: %s",
 			m.frozenProc.Pid,
+			m.frozenProc.Ppid,
+			m.frozenProc.Username,
+			m.frozenProc.CPU,
+			util.HumanBytes(m.frozenProc.Rss),
+			m.frozenProc.Cmdline,
 		)
-		footer := "[q]quit"
-		return header + "\n\n" + m.viewport.View() + "\n" + footer
+		footer := "[enter]details [q]back"
+		return header + "\n" + m.tableDetail.View() + "\n\n" + footer
 	}
 	header := fmt.Sprintf(
 		"CPU: %.2f%%\nMem: %s / %s (%.2f%%)\n",

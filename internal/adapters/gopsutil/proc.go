@@ -2,7 +2,6 @@ package gopsutil
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -44,7 +43,7 @@ func (g *GopsutilProcessReader) ReadProcesses() ([]domain.Process, error) {
 	for _, p := range g.cache {
 		proc, err := readOne(p)
 		if err != nil {
-			log.Printf("dropped pid=%d err=%v", p.Pid, err)
+			// log.Printf("dropped pid=%d err=%v", p.Pid, err)
 			continue
 		}
 		results = append(results, proc)
