@@ -17,7 +17,7 @@ func (m Model) View() string {
 			util.HumanBytes(m.frozenProc.Rss),
 			m.frozenProc.Cmdline,
 		)
-		footer := "[enter]details [q]back"
+		footer := m.footerView("[enter]details [/]search [q]back")
 		return header + "\n" + m.tableDetail.View() + "\n\n" + footer
 	}
 	header := fmt.Sprintf(
@@ -27,6 +27,16 @@ func (m Model) View() string {
 		util.HumanBytes(m.memory.Total),
 		float64(m.memory.Used)*100.0/float64(m.memory.Total),
 	)
-	footer := "sort: [C]cpu [M]rss [P]pid [L]cmdline | [enter]details [q]quit"
+	footer := m.footerView("sort: [C]cpu [M]rss [P]pid [L]cmdline | [enter]details [/]search [q]quit")
 	return header + "\n" + m.table.View() + "\n\n" + footer
+}
+
+func (m Model) footerView(hints string) string {
+	if m.filterActive {
+		return m.filter.View()
+	}
+	if m.filter.Value() != "" {
+		return fmt.Sprintf("/%s  [esc]clear | %s", m.filter.Value(), hints)
+	}
+	return hints
 }

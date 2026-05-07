@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ckinan/cktop/internal/domain"
@@ -56,6 +57,9 @@ type Model struct {
 	sortDesc    bool
 	tableDetail table.Model
 	treeRowPIDs []int // maps tableDetail row index → PID
+	// filter state (shared between both views)
+	filter       textinput.Model
+	filterActive bool
 	// fields for details view
 	showDetail  bool
 	frozenProc  domain.Process
@@ -81,7 +85,10 @@ func New(ch <-chan domain.Snapshot) Model {
 		table.WithStyles(s),
 	)
 
-	// table for detail view
+	fi := textinput.New()
+	fi.Prompt = "/"
+	fi.CharLimit = 64
+
 	td := table.New(
 		table.WithColumns([]table.Column{{Title: "", Width: 120}}),
 		table.WithFocused(true),
@@ -91,9 +98,10 @@ func New(ch <-chan domain.Snapshot) Model {
 		snapCh:      ch,
 		height:      24,
 		table:       t,
+		tableDetail: td,
+		filter:      fi,
 		sortBy:      SortByRSS,
 		sortDesc:    true,
-		tableDetail: td,
 	}
 }
 

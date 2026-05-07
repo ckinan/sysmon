@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/ckinan/cktop/internal/domain"
 	"github.com/ckinan/cktop/internal/util"
@@ -33,6 +34,20 @@ func calcDir(showDir bool, sortDesc bool) string {
 	return " ▲"
 }
 
+func filterProcs(procs []domain.Process, query string) []domain.Process {
+	if query == "" {
+		return procs
+	}
+	q := strings.ToLower(query)
+	var out []domain.Process
+	for _, p := range procs {
+		if strings.Contains(strings.ToLower(fmt.Sprintf("%d %d %s %s %s", p.Pid, p.Ppid, p.Username, p.Cmdline, util.HumanBytes(p.Rss))), q) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 func (m *Model) applySort() {
 	// Reserve lines for CPU header (1) + RAM header (1) + blank (1) + [table content] + blank (1) + footer (1) = 5
 	// bubbles/table renders its own column header row internally
@@ -48,17 +63,18 @@ func (m *Model) applySort() {
 	})
 
 	var sorted []domain.Process
+	procs := filterProcs(m.procs, m.filter.Value())
 	switch m.sortBy {
 	case SortByRSS:
-		sorted = util.SortBy(m.procs, func(p domain.Process) int { return p.Rss }, m.sortDesc)
+		sorted = util.SortBy(procs, func(p domain.Process) int { return p.Rss }, m.sortDesc)
 	case SortByCPU:
-		sorted = util.SortBy(m.procs, func(p domain.Process) float64 { return p.CPU }, m.sortDesc)
+		sorted = util.SortBy(procs, func(p domain.Process) float64 { return p.CPU }, m.sortDesc)
 	case SortByPID:
-		sorted = util.SortBy(m.procs, func(p domain.Process) int { return p.Pid }, m.sortDesc)
+		sorted = util.SortBy(procs, func(p domain.Process) int { return p.Pid }, m.sortDesc)
 	case SortByPPID:
-		sorted = util.SortBy(m.procs, func(p domain.Process) int { return p.Ppid }, m.sortDesc)
+		sorted = util.SortBy(procs, func(p domain.Process) int { return p.Ppid }, m.sortDesc)
 	case SortByCmdLine:
-		sorted = util.SortBy(m.procs, func(p domain.Process) string { return p.Cmdline }, m.sortDesc)
+		sorted = util.SortBy(procs, func(p domain.Process) string { return p.Cmdline }, m.sortDesc)
 	}
 
 	rows := make([]table.Row, len(sorted))
@@ -159,10 +175,53 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, waitForSnapshot(m.snapCh)
 	case tea.KeyMsg:
+		if m.filterActive {
+			switch msg.String() {
+			case "enter":
+				m.filterActive = false
+				m.filter.Blur()
+				if m.showDetail {
+					m.openDetailView()
+				} else {
+					m.applySort()
+				}
+				return m, nil
+			case "esc":
+				m.filterActive = false
+				m.filter.Blur()
+				m.filter.SetValue("")
+				if m.showDetail {
+					m.openDetailView()
+				} else {
+					m.applySort()
+				}
+				return m, nil
+			}
+			var tiCmd tea.Cmd
+			m.filter, tiCmd = m.filter.Update(msg)
+			if m.showDetail {
+				m.openDetailView()
+			} else {
+				m.applySort()
+			}
+			return m, tiCmd
+		}
 		if m.showDetail {
 			switch msg.String() {
+			case "/":
+				m.filterActive = true
+				m.filter.SetValue("")
+				m.filter.Focus()
+				return m, textinput.Blink
+			case "esc":
+				if m.filter.Value() != "" {
+					m.filter.SetValue("")
+					m.openDetailView()
+				}
+				return m, nil
 			case "q":
 				m.showDetail = false
+				m.filter.SetValue("")
 				return m, nil
 			case "enter":
 				cursor := m.tableDetail.Cursor()
@@ -174,12 +233,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							break
 						}
 					}
+					m.filter.SetValue("")
 					m.openDetailView()
 				}
 				return m, nil
 			}
 			m.tableDetail, cmd = m.tableDetail.Update(msg)
 			return m, cmd
+		}
+		switch msg.String() {
+		case "/":
+			m.filterActive = true
+			m.filter.SetValue("")
+			m.filter.Focus()
+			return m, textinput.Blink
+		case "esc":
+			if m.filter.Value() != "" {
+				m.filter.SetValue("")
+				m.applySort()
+			}
+			return m, nil
 		}
 		prev := m.sortBy
 		isSortKey := true
@@ -198,6 +271,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					break
 				}
 			}
+			m.filter.SetValue("")
 			m.openDetailView()
 			m.showDetail = true
 		case "M":
@@ -239,12 +313,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *Model) openDetailView() {
 	rows, pids := buildTreeRows(m.frozenProcs, m.frozenProc)
+
+	if q := m.filter.Value(); q != "" {
+		q = strings.ToLower(q)
+		var filteredRows []table.Row
+		var filteredPIDs []int
+		for i, r := range rows {
+			if strings.Contains(strings.ToLower(r[0]), q) {
+				filteredRows = append(filteredRows, r)
+				filteredPIDs = append(filteredPIDs, pids[i])
+			}
+		}
+		rows, pids = filteredRows, filteredPIDs
+	}
+
 	m.tableDetail.SetRows(rows)
 	m.treeRowPIDs = pids
 	for i, pid := range pids {
 		if pid == m.frozenProc.Pid {
 			m.tableDetail.SetCursor(i)
-			break
+			return
 		}
 	}
+	m.tableDetail.SetCursor(0)
 }
