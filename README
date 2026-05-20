@@ -52,20 +52,30 @@ Metrics are available at http://localhost:9110/metrics.
 VictoriaMetrics scrape config
 -----------------------------
 
-To scrape ckagent with VictoriaMetrics, create a scrape_config.yaml:
+Create /etc/victoriametrics/scrape_config.yaml (or any path readable by the victoriametrics service user):
 
   scrape_configs:
     - job_name: ckagent
       static_configs:
-        - targets: ['<host>:9110']
+        - targets: ['<host1>:9110']
           labels:
-            host: '<hostname>'
+            host: '<hostname1>'
+        - targets: ['<host2>:9110']
+          labels:
+            host: '<hostname2>'
 
-Pass it to VictoriaMetrics at startup:
+Update /etc/systemd/system/victoriametrics.service to pass the config:
 
-  victoria-metrics-prod \
-    -storageDataPath=<data_dir> \
-    -promscrape.config=<path_to_scrape_config.yaml>
+  ExecStart=/usr/local/bin/victoria-metrics-prod \
+    -storageDataPath=/var/lib/victoria-metrics \
+    -retentionPeriod=90d \
+    -selfScrapeInterval=10s \
+    -promscrape.config=/etc/victoriametrics/scrape_config.yaml
+
+Reload and restart VictoriaMetrics:
+
+  sudo systemctl daemon-reload && sudo systemctl restart victoriametrics
+  sudo systemctl status victoriametrics
 
 See https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/ for full VictoriaMetrics configuration reference.
 
