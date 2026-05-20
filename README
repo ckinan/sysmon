@@ -1,5 +1,5 @@
 cktop
------
+=====
 
 A Linux terminal system monitor. Reads directly from /proc.
 
@@ -12,4 +12,60 @@ Upgrade
 -------
 
   GOPROXY=direct go install github.com/ckinan/cktop/cmd/cktop@latest
+
+
+ckstat
+======
+
+A one-shot CLI tool that prints current memory usage.
+
+Installation
+------------
+
+  go install github.com/ckinan/cktop/cmd/ckstat@latest
+
+Usage
+-----
+
+  ckstat          # human-readable text
+  ckstat -o json  # JSON output
+
+
+ckagent
+=======
+
+A metrics agent that exposes system metrics in Prometheus exposition format.
+Designed to be scraped by VictoriaMetrics (or Prometheus).
+
+Installation
+------------
+
+  go install github.com/ckinan/cktop/cmd/ckagent@latest
+
+Run
+---
+
+  ckagent -addr :9110
+
+Metrics are available at http://localhost:9110/metrics.
+
+VictoriaMetrics scrape config
+-----------------------------
+
+To scrape ckagent with VictoriaMetrics, create a scrape_config.yaml:
+
+  scrape_configs:
+    - job_name: ckagent
+      static_configs:
+        - targets: ['<host>:9110']
+          labels:
+            host: '<hostname>'
+
+Pass it to VictoriaMetrics at startup:
+
+  victoria-metrics-prod \
+    -storageDataPath=<data_dir> \
+    -promscrape.config=<path_to_scrape_config.yaml>
+
+See https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/ for full VictoriaMetrics configuration reference.
 
