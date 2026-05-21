@@ -6,32 +6,56 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/ckinan/cktop/internal/adapters/proc"
 	"github.com/ckinan/cktop/internal/domain"
 	"github.com/ckinan/cktop/internal/util"
 )
 
+type snapshot struct {
+	CPU    float64      `json:"cpu_percent"`
+	Memory domain.Memory `json:"memory"`
+}
+
 func main() {
-	output := flag.String("o", "text", "output format: text or json")
+	output   := flag.String("o", "text", "output format: text or json")
+	interval := flag.Duration("interval", time.Second, "CPU measurement window (two /proc/stat reads)")
 	flag.Parse()
+
+	cpuReader := proc.NewProcCPUReader()
+	if _, err := cpuReader.ReadCPU(); err != nil {
+		log.Fatal(err)
+	}
+	time.Sleep(*interval)
+	cpu, err := cpuReader.ReadCPU()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	mem, err := proc.ProcMemoryReader{}.ReadMemory()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	s := snapshot{CPU: cpu, Memory: mem}
+
 	switch *output {
 	case "json":
-		printJSON(mem)
+		printJSON(s)
 	default:
-		printText(mem)
+		printText(s)
 	}
 }
 
-func printText(m domain.Memory) {
+func printText(s snapshot) {
+	m := s.Memory
 	usedPct := float64(m.Used) / float64(m.Total) * 100
 	availPct := float64(m.Available) / float64(m.Total) * 100
+
+	fmt.Printf("CPU\n")
+	fmt.Printf("  %-12s %9.1f%%\n", "usage", s.CPU)
+	fmt.Println()
 
 	fmt.Println("Memory")
 	fmt.Printf("  %-12s %10s\n", "total", util.HumanBytes(m.Total))
@@ -53,10 +77,10 @@ func printText(m domain.Memory) {
 	}
 }
 
-func printJSON(m domain.Memory) {
+func printJSON(s snapshot) {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	if err := enc.Encode(m); err != nil {
+	if err := enc.Encode(s); err != nil {
 		log.Fatal(err)
 	}
 }
